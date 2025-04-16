@@ -21,7 +21,7 @@
     },
     {
       "parameters": {
-        "url": "https://api.openweathermap.org/data/2.5/weather?q=Konya&appid=56e5fd0e64205258965d9b8a2d6a53db&units=metric&lang=tr",
+        "url": "https://api.openweathermap.org/data/2.5/weather?q=Konya&appid="APİKEY"db&units=metric&lang=tr",
         "options": {}
       },
       "id": "weatherApiNode",
