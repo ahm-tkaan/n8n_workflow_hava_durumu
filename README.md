@@ -149,7 +149,7 @@ Bu iş akışı, aşağıdaki şekillerde genişletilebilir:
 
 ## Lisans
 
-Bu iş akışı MIT lisansı altında dağıtılmaktadır.
+Yok.
 
 ## İletişim
 
