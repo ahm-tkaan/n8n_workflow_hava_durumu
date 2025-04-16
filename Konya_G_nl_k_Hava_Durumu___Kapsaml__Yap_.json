@@ -1,0 +1,210 @@
+{
+  "name": "Konya Günlük Hava Durumu - Kapsamlı Yapı",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "hour": 12
+            }
+          ]
+        }
+      },
+      "id": "cronNode",
+      "name": "Cron",
+      "type": "n8n-nodes-base.cron",
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.openweathermap.org/data/2.5/weather?q=Konya&appid=56e5fd0e64205258965d9b8a2d6a53db&units=metric&lang=tr",
+        "options": {}
+      },
+      "id": "weatherApiNode",
+      "name": "OpenWeatherMap API",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "setSuccessNode",
+      "name": "Başarılı Durum Ayarla",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Tarihi formatlama\nconst date = new Date();\nconst formattedDate = new Intl.DateTimeFormat('tr-TR', {\n  day: '2-digit',\n  month: '2-digit',\n  year: 'numeric',\n  hour: '2-digit',\n  minute: '2-digit'\n}).format(date);\n\n// Hava durumu verilerini alma\nconst weatherData = $input.all()[0].json;\nconst cityName = weatherData.name;\nconst temp = Math.round(weatherData.main.temp);\nconst feelsLike = Math.round(weatherData.main.feels_like);\nconst humidity = weatherData.main.humidity;\nconst windSpeed = weatherData.wind.speed;\nconst weatherDesc = weatherData.weather[0].description;\nconst weatherIcon = weatherData.weather[0].icon;\nconst iconUrl = `http://openweathermap.org/img/wn/${weatherIcon}@2x.png`;\n\n// Hava durumu önerisi\nlet recommendation = '';\nif (temp > 30) {\n  recommendation = 'Dikkat: Aşırı sıcak hava. Bol su içmeyi ve direkt güneş ışığından kaçınmayı unutmayın.';\n} else if (temp > 25) {\n  recommendation = 'Sıcak bir gün. Güneş kremi kullanmanız önerilir.';\n} else if (temp < 5) {\n  recommendation = 'Hava soğuk. Kalın giyinmeniz önerilir.';\n} else if (temp < 0) {\n  recommendation = 'Dikkat: Dondurucu soğuk. Gerekmedikçe dışarı çıkmayın ve kalın giyinin.';\n} else {\n  recommendation = 'Hava koşulları normal seviyede. İyi günler dileriz.';\n}\n\n// HTML içeriği oluşturma\nconst htmlContent = `\n<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body {\n      font-family: Arial, sans-serif;\n      line-height: 1.6;\n      max-width: 600px;\n      margin: 0 auto;\n      padding: 20px;\n      color: #333;\n    }\n    .header {\n      background-color: #3498db;\n      color: white;\n      padding: 15px;\n      text-align: center;\n      border-radius: 5px 5px 0 0;\n    }\n    .content {\n      border: 1px solid #ddd;\n      border-top: none;\n      padding: 20px;\n      border-radius: 0 0 5px 5px;\n    }\n    .weather-icon {\n      text-align: center;\n      margin: 20px 0;\n    }\n    .weather-main {\n      font-size: 28px;\n      text-align: center;\n      margin-bottom: 20px;\n    }\n    .weather-details {\n      background-color: #f8f9fa;\n      padding: 15px;\n      border-radius: 5px;\n      margin-bottom: 20px;\n    }\n    .recommendation {\n      background-color: #e1f5fe;\n      padding: 15px;\n      border-radius: 5px;\n      margin-top: 20px;\n    }\n    .footer {\n      margin-top: 30px;\n      text-align: center;\n      font-size: 12px;\n      color: #777;\n    }\n    table {\n      width: 100%;\n      border-collapse: collapse;\n    }\n    td {\n      padding: 8px;\n      border-bottom: 1px solid #ddd;\n    }\n    td:first-child {\n      font-weight: bold;\n      width: 40%;\n    }\n  </style>\n</head>\n<body>\n  <div class=\"header\">\n    <h2>Konya Hava Durumu Raporu</h2>\n    <p>${formattedDate}</p>\n  </div>\n  \n  <div class=\"content\">\n    <div class=\"weather-icon\">\n      <img src=\"${iconUrl}\" alt=\"Hava durumu ikonu\" width=\"100\">\n    </div>\n    \n    <div class=\"weather-main\">\n      <strong>${temp}°C</strong> | ${weatherDesc.toUpperCase()}\n    </div>\n    \n    <div class=\"weather-details\">\n      <table>\n        <tr>\n          <td>Şehir:</td>\n          <td>${cityName}</td>\n        </tr>\n        <tr>\n          <td>Hava Durumu:</td>\n          <td>${weatherDesc}</td>\n        </tr>\n        <tr>\n          <td>Sıcaklık:</td>\n          <td>${temp}°C</td>\n        </tr>\n        <tr>\n          <td>Hissedilen Sıcaklık:</td>\n          <td>${feelsLike}°C</td>\n        </tr>\n        <tr>\n          <td>Nem:</td>\n          <td>${humidity}%</td>\n        </tr>\n        <tr>\n          <td>Rüzgar Hızı:</td>\n          <td>${windSpeed} m/s</td>\n        </tr>\n      </table>\n    </div>\n    \n    <div class=\"recommendation\">\n      <strong>Öneri:</strong> ${recommendation}\n    </div>\n    \n    <div class=\"footer\">\n      <p>Bu rapor otomatik olarak oluşturulmuştur. Her gün saat 12:00'de gönderilmektedir.</p>\n      <p>© ${new Date().getFullYear()} Hava Durumu Bildirimi</p>\n    </div>\n  </div>\n</body>\n</html>\n`;\n\n// Sonucu döndürme\nreturn [\n  {\n    json: {\n      htmlContent: htmlContent,\n      subject: `Konya Hava Durumu - ${formattedDate}`,\n      başarılı: true,\n      durum: \"HTML içerik başarıyla oluşturuldu.\"\n    }\n  }\n];"
+      },
+      "id": "formatWeatherHtmlNode",
+      "name": "Hava Durumu HTML Formatla",
+      "type": "n8n-nodes-base.function",
+      "position": [
+        940,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Tarihi formatlama\nconst date = new Date();\nconst formattedDate = new Intl.DateTimeFormat('tr-TR', {\n  day: '2-digit',\n  month: '2-digit',\n  year: 'numeric',\n  hour: '2-digit',\n  minute: '2-digit'\n}).format(date);\n\n// Durum bilgisini alma\nconst işAkışıDurumu = $input.all()[0].json.başarılı ? \"başarılı\" : \"başarısız\";\nconst durumDetayı = $input.all()[0].json.durum;\n\n// HTML içeriği oluşturma\nconst htmlContent = `\n<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body {\n      font-family: Arial, sans-serif;\n      line-height: 1.6;\n      max-width: 600px;\n      margin: 0 auto;\n      padding: 20px;\n      color: #333;\n    }\n    .header {\n      background-color: #2c3e50;\n      color: white;\n      padding: 15px;\n      text-align: center;\n      border-radius: 5px 5px 0 0;\n    }\n    .content {\n      border: 1px solid #ddd;\n      border-top: none;\n      padding: 20px;\n      border-radius: 0 0 5px 5px;\n    }\n    .status {\n      padding: 15px;\n      border-radius: 5px;\n      margin: 20px 0;\n      text-align: center;\n      font-size: 18px;\n      font-weight: bold;\n    }\n    .status.success {\n      background-color: #d4edda;\n      color: #155724;\n    }\n    .status.error {\n      background-color: #f8d7da;\n      color: #721c24;\n    }\n    .details {\n      background-color: #f8f9fa;\n      padding: 15px;\n      border-radius: 5px;\n      margin-bottom: 20px;\n    }\n    .footer {\n      margin-top: 30px;\n      text-align: center;\n      font-size: 12px;\n      color: #777;\n    }\n  </style>\n</head>\n<body>\n  <div class=\"header\">\n    <h2>İş Akışı Durum Raporu</h2>\n    <p>${formattedDate}</p>\n  </div>\n  \n  <div class=\"content\">\n    <p>Konya Hava Durumu iş akışı çalıştırıldı.</p>\n    \n    <div class=\"status ${işAkışıDurumu === 'başarılı' ? 'success' : 'error'}\">\n      İş Akışı Durumu: ${işAkışıDurumu.toUpperCase()}\n    </div>\n    \n    <div class=\"details\">\n      <strong>Detaylar:</strong> ${durumDetayı}\n      <p><strong>Çalıştırma Zamanı:</strong> ${formattedDate}</p>\n    </div>\n    \n    <p>Bir sonraki çalıştırma yarın saat 12:00'de gerçekleşecektir.</p>\n    \n    <div class=\"footer\">\n      <p>Bu rapor otomatik olarak oluşturulmuştur.</p>\n      <p>© ${new Date().getFullYear()} Hava Durumu Bildirimi Sistemi</p>\n    </div>\n  </div>\n</body>\n</html>\n`;\n\n// Sonucu döndürme\nreturn [\n  {\n    json: {\n      htmlContent: htmlContent,\n      subject: `İş Akışı Durum Raporu - ${formattedDate}`,\n      durumDetayı: durumDetayı,\n      işAkışıDurumu: işAkışıDurumu\n    }\n  }\n];"
+      },
+      "id": "workflowStatusNode",
+      "name": "İş Akışı Durum Raporu",
+      "type": "n8n-nodes-base.function",
+      "position": [
+        1450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "dev.kaan.0@gmail.com",
+        "subject": "={{$json[\"subject\"]}}",
+        "message": "={{$json[\"htmlContent\"]}}",
+        "options": {}
+      },
+      "id": "sendStatusEmailNode",
+      "name": "Durum Raporu E-postası Gönder",
+      "type": "n8n-nodes-base.gmail",
+      "position": [
+        1650,
+        300
+      ],
+      "webhookId": "0d0c240a-a1d1-46ff-8e03-65da8e7fbb59",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "hqgFFB7Mv3KQLpRm",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "dev.kaan.0@gmail.com",
+        "subject": "={{$json[\"subject\"]}}",
+        "message": "={{$json[\"htmlContent\"]}}",
+        "options": {}
+      },
+      "id": "sendWeatherEmailNode",
+      "name": "Hava Durumu E-postası Gönder",
+      "type": "n8n-nodes-base.gmail",
+      "position": [
+        1220,
+        300
+      ],
+      "webhookId": "021480d7-2276-4626-9cbb-50e422fabfa7",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "hqgFFB7Mv3KQLpRm",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Cron": {
+      "main": [
+        [
+          {
+            "node": "OpenWeatherMap API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenWeatherMap API": {
+      "main": [
+        [
+          {
+            "node": "Başarılı Durum Ayarla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "Hata Durumu Ayarla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Başarılı Durum Ayarla": {
+      "main": [
+        [
+          {
+            "node": "Hava Durumu HTML Formatla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hava Durumu HTML Formatla": {
+      "main": [
+        [
+          {
+            "node": "Hava Durumu E-postası Gönder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "İş Akışı Durum Raporu": {
+      "main": [
+        [
+          {
+            "node": "Durum Raporu E-postası Gönder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hava Durumu E-postası Gönder": {
+      "main": [
+        [
+          {
+            "node": "İş Akışı Durum Raporu",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "executionTimeout": 3600,
+    "timezone": "UTC"
+  },
+  "versionId": "e8a1b212-2ba6-4a41-9489-3b1ff6622583",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "905ceca63f462a9168e8079725ac830d77b4f2852a1439593be1c9e39e787936"
+  },
+  "id": "FB4Brsdla8pEbJSC",
+  "tags": []
+}
